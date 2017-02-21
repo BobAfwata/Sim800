@@ -1,11 +1,11 @@
 #ifndef	_GSMCONFIG_H
 #define	_GSMCONFIG_H
 
-#define		_GSM_DUAL_SIM_SUPPORT				1
+#define		_GSM_DUAL_SIM_SUPPORT       1
 
-#define		_GSM_USART									huart1
+#define		_GSM_USART                  huart1
 
-#define		_GSM_POWER_PORT							GSM_POWER_PIN_GPIO_Port							
+#define		_GSM_POWER_PORT             GSM_POWER_PIN_GPIO_Port							
 #define		_GSM_POWER_PIN							GSM_POWER_PIN_Pin
 #define		_GSM_POWER_STATUS_PORT			GSM_POWER_STATUS_GPIO_Port	
 #define		_GSM_POWER_STATUS_PIN				GSM_POWER_STATUS_Pin
