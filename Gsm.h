@@ -36,35 +36,35 @@ typedef	enum
 //----------------------
 typedef struct
 {
-	uint32_t  							LastTimeRecieved;
-	uint8_t 								usartBuff;
-	bool										usartRxError;
-	bool										usartTxError;
-	uint8_t 								RxBuffer[_GSM_RX_SIZE];
-	uint8_t 								TxBuffer[_GSM_TX_SIZE];
-	uint16_t								RxIndex;
+	uint32_t						LastTimeRecieved;
+	uint8_t							usartBuff;
+	bool							usartRxError;
+	bool							usartTxError;
+	uint8_t							RxBuffer[_GSM_RX_SIZE];
+	uint8_t							TxBuffer[_GSM_TX_SIZE];
+	uint16_t						RxIndex;
 	
 
-	bool										PowerState;
-	bool										CallerID;
-	GsmSignalQuality_t			SignalQuality;
-	uint8_t									SignalQualityCounter;
+	bool							PowerState;
+	bool							CallerID;
+	GsmSignalQuality_t				SignalQuality;
+	uint8_t							SignalQualityCounter;
 	
-	bool										MsgTextMode;
-	bool										MsgStoredOnSim;
-	uint16_t								MsgStoredUsed;
-	uint16_t								MsgStoredCapacity;
-	char										MsgMessage[_GSM_RX_SIZE/2];
-	char										MsgDate[18];
-	char										MsgNumber[15];
-	bool										MsgSendDone;
+	bool							MsgTextMode;
+	bool							MsgStoredOnSim;
+	uint16_t						MsgStoredUsed;
+	uint16_t						MsgStoredCapacity;
+	char							MsgMessage[_GSM_RX_SIZE/2];
+	char							MsgDate[18];
+	char							MsgNumber[15];
+	bool							MsgSendDone;
 	
-	char										CallerNumber[15];
+	char							CallerNumber[15];
 
 	#if (_GSM_DUAL_SIM_SUPPORT==1)
-	GsmSignalQuality_t			SignalQualityDS;
-	uint8_t									SignalQualityCounterDS;
-	uint8_t									DefaultSim;	
+	GsmSignalQuality_t				SignalQualityDS;
+	uint8_t							SignalQualityCounterDS;
+	uint8_t							DefaultSim;	
 	#endif
 
 }Gsm_t;
