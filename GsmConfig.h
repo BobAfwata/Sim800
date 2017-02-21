@@ -1,9 +1,5 @@
 #ifndef	_GSMCONFIG_H
 #define	_GSMCONFIG_H
-//	Please enable FreerRtos 
-//	Please Config your usart and enable interrupt on CubeMX 
-//	2 control Pin	 PowerKey>>>>output--open drain : default Value>>1         Power status>>>>>input---pulldown
-// Select "General peripheral Initalizion as a pair of '.c/.h' file per peripheral" on project settings
 
 #define		_GSM_DUAL_SIM_SUPPORT				1
 
