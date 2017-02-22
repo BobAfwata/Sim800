@@ -13,21 +13,23 @@ Gsm_t	Gsm;
 void	Gsm_InitValue(void)
 {
 	osDelay(1000);
-	Gsm_SetPower(true);										//	turn on module
+	Gsm_SetPower(true);													//	turn on module
 	osDelay(1000);
 	#if (_GSM_DUAL_SIM_SUPPORT==1)
 	Gsm_SetDefaultSim(1);
-	Gsm_MsgSetStoredOnSim(false);					//	select message sored to mudule
+	Gsm_MsgSetStoredOnSim(false);								//	select message sored to mudule
 	#endif
-	Gsm_MsgSetStoredOnSim(false);					//	select message sored to mudule
-	Gsm_MsgGetStatus();										//	read message stored capacity and more
-	Gsm_MsgSetTextMode(true);							//	set to text mode
-	Gsm_SetEnableShowCallerNumber(true);	//  set enable show caller number
+	Gsm_MsgSetStoredOnSim(false);								//	select message sored to mudule
+	Gsm_MsgGetStatus();													//	read message stored capacity and more
+	Gsm_MsgSetTextMode(true);										//	set to text mode
+	Gsm_SetEnableShowCallerNumber(true);				//  set enable show caller number
+	Gsm_SetConnectedLineIdentification(true);		//	set enable Connected Line Identification
 	#if (_GSM_DUAL_SIM_SUPPORT==1)
 	Gsm_SetDefaultSim(2);
 	Gsm_MsgSetStoredOnSim(false);					//	select message sored to mudule
 	Gsm_SetDefaultSim(1);
 	#endif
+	
 }
 //#########################################################################################################
 bool	Gsm_SendRaw(uint8_t *data,uint16_t len)
@@ -219,6 +221,8 @@ void GsmTask(void const * argument)
 	uint8_t GsmResult;
 	Gsm_InitValue();
 	//#######################	
+	
+
 	while(1)
 	{
 		if(Gsm.MsgStoredUsed>0)	//	sms on memory
@@ -623,18 +627,38 @@ bool	Gsm_Answer(void)
 	}while(0);
 	osSemaphoreRelease(GsmSemHandle);
 	return returnVal;	
-	
 }
 //#########################################################################################################
-bool	Gsm_Dial(char *DialNumber,uint8_t WaitForAnswer_Second,GsmDial_t *Answer)
+bool	Gsm_WaitForDisconnectCall(uint16_t WaitSecond)
 {
 	osSemaphoreWait(GsmSemHandle,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
 	{
-		if(Answer != NULL)
-			*Answer = GsmDial_Nothing;
+		Gsm_RxClear();
+		if(Gsm_WaitForString(WaitSecond*1000,&result,1,"NO CARRIER")==false)
+		{
+			sprintf((char*)Gsm.TxBuffer,"AT+HVOIC\r\n");
+			if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
+				break;
+			if(Gsm_WaitForString(_GSM_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+				break;
+			break;
+		}		
+		returnVal=true;	
+	}while(0);
+	osSemaphoreRelease(GsmSemHandle);
+	return returnVal;	
+}
+//#########################################################################################################
+bool	Gsm_Dial(char *DialNumber,uint8_t WaitForAnswer_Second)
+{
+	osSemaphoreWait(GsmSemHandle,osWaitForever);
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{
 		if(WaitForAnswer_Second>65)
 			WaitForAnswer_Second=65;
 		if(DialNumber==NULL)
@@ -643,7 +667,7 @@ bool	Gsm_Dial(char *DialNumber,uint8_t WaitForAnswer_Second,GsmDial_t *Answer)
 		sprintf((char*)Gsm.TxBuffer,"ATD%s;\r\n",DialNumber);
 		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
 			break;
-		if(Gsm_WaitForString(WaitForAnswer_Second*1000,&result,6,"ERROR","NO DIALTONE","BUSY","NO CARRIER","NO ANSWER","CONNECT")==false)
+		if(Gsm_WaitForString(WaitForAnswer_Second*1000,&result,7,"ERROR","OK","NO DIALTONE","BUSY","NO CARRIER","NO ANSWER","CONNECT")==false)
 		{
 			sprintf((char*)Gsm.TxBuffer,"AT+HVOIC\r\n");
 			Gsm_SendString((char*)Gsm.TxBuffer);
@@ -652,27 +676,26 @@ bool	Gsm_Dial(char *DialNumber,uint8_t WaitForAnswer_Second,GsmDial_t *Answer)
 		if(result == 1)
 			break;
 			
-		if(Answer != NULL)
+		switch (result)
 		{
-			switch (result)
-			{
-				case 2:
-					*Answer = GsmDial_NoDialTone;
-				break;
-				case 3:
-					*Answer = GsmDial_Busy;
-				break;
-				case 4:
-					*Answer = GsmDial_NoCarrier;
-				break;
-				case 5:
-					*Answer = GsmDial_NoAnswer;
-				break;
-				case 6:
-					*Answer = GsmDial_Data;
-				break;
-	
-			}
+			case 2:
+				Gsm.DialAnswer = GsmDial_Answer;
+			break;
+			case 3:
+				Gsm.DialAnswer = GsmDial_NoDialTone;
+			break;
+			case 4:
+				Gsm.DialAnswer = GsmDial_Busy;
+			break;
+			case 5:
+				Gsm.DialAnswer = GsmDial_NoCarrier;
+			break;
+			case 6:
+				Gsm.DialAnswer = GsmDial_NoAnswer;
+			break;
+			case 7:
+				Gsm.DialAnswer = GsmDial_Data;
+			break;	
 		}
 		returnVal=true;	
 	}while(0);
@@ -778,6 +801,28 @@ bool	Gsm_SetEnableShowCallerNumber(bool	Enable)
 	{
 		Gsm_RxClear();
 		sprintf((char*)Gsm.TxBuffer,"AT+CLIP=%d\r\n",Enable);
+		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
+			break;
+		if(Gsm_WaitForString(_GSM_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;
+		returnVal=true;	
+		Gsm.CallerID=Enable;
+	}while(0);
+	osSemaphoreRelease(GsmSemHandle);
+	return returnVal;	
+}
+//#########################################################################################################
+bool	Gsm_SetConnectedLineIdentification(bool Enable)
+{
+	osSemaphoreWait(GsmSemHandle,osWaitForever);
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{
+		Gsm_RxClear();
+		sprintf((char*)Gsm.TxBuffer,"AT+COLP=%d\r\n",Enable);
 		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
 			break;
 		if(Gsm_WaitForString(_GSM_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)

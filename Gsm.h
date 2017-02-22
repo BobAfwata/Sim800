@@ -18,6 +18,7 @@
 typedef	enum
 {
 	GsmDial_Nothing				=		0,
+	GsmDial_Answer,
 	GsmDial_NoDialTone,
 	GsmDial_Busy,
 	GsmDial_NoCarrier,
@@ -36,35 +37,35 @@ typedef	enum
 //----------------------
 typedef struct
 {
-	uint32_t						LastTimeRecieved;
-	uint8_t							usartBuff;
-	bool							usartRxError;
-	bool							usartTxError;
-	uint8_t							RxBuffer[_GSM_RX_SIZE];
-	uint8_t							TxBuffer[_GSM_TX_SIZE];
-	uint16_t						RxIndex;
+	uint32_t  							LastTimeRecieved;
+	uint8_t 								usartBuff;
+	bool										usartRxError;
+	bool										usartTxError;
+	uint8_t 								RxBuffer[_GSM_RX_SIZE];
+	uint8_t 								TxBuffer[_GSM_TX_SIZE];
+	uint16_t								RxIndex;
 	
 
-	bool							PowerState;
-	bool							CallerID;
-	GsmSignalQuality_t				SignalQuality;
-	uint8_t							SignalQualityCounter;
+	bool										PowerState;
+	bool										CallerID;
+	GsmSignalQuality_t			SignalQuality;
+	uint8_t									SignalQualityCounter;
 	
-	bool							MsgTextMode;
-	bool							MsgStoredOnSim;
-	uint16_t						MsgStoredUsed;
-	uint16_t						MsgStoredCapacity;
-	char							MsgMessage[_GSM_RX_SIZE/2];
-	char							MsgDate[18];
-	char							MsgNumber[15];
-	bool							MsgSendDone;
+	bool										MsgTextMode;
+	bool										MsgStoredOnSim;
+	uint16_t								MsgStoredUsed;
+	uint16_t								MsgStoredCapacity;
+	char										MsgMessage[_GSM_RX_SIZE/2];
+	char										MsgDate[18];
+	char										MsgNumber[15];
+	bool										MsgSendDone;
 	
-	char							CallerNumber[15];
-
+	char										CallerNumber[15];
+	GsmDial_t								DialAnswer;
 	#if (_GSM_DUAL_SIM_SUPPORT==1)
-	GsmSignalQuality_t				SignalQualityDS;
-	uint8_t							SignalQualityCounterDS;
-	uint8_t							DefaultSim;	
+	GsmSignalQuality_t			SignalQualityDS;
+	uint8_t									SignalQualityCounterDS;
+	uint8_t									DefaultSim;	
 	#endif
 
 }Gsm_t;
@@ -94,12 +95,14 @@ bool	Gsm_SetDefaultSim(uint8_t	SelectedSim_1_or_2);
 #endif
 //###################################################################################################
 bool	Gsm_Answer(void);
-bool	Gsm_Dial(char *DialNumber,uint8_t WaitForAnswer_Second,GsmDial_t *Answer);
+bool	Gsm_WaitForDisconnectCall(uint16_t WaitSecond);
+bool	Gsm_Dial(char *DialNumber,uint8_t WaitForAnswer_Second);
 bool	Gsm_DisconnectAll(void);
 bool	Gsm_DisconnectVoiceCall(void);
 bool	Gsm_DtmfGereration(char *SendingNumber);
 bool	Gsm_GetCallerNumber(void);
 bool	Gsm_SetEnableShowCallerNumber(bool	Enable);
+bool	Gsm_SetConnectedLineIdentification(bool Enable);
 //###################################################################################################
 bool	Gsm_MsgSetTextMode(bool	TextMode);
 bool	Gsm_MsgGetTextMode(void);
