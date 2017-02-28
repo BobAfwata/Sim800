@@ -16,17 +16,29 @@ void	Gsm_InitValue(void)
 	Gsm_SetPower(true);													//	turn on module
 	osDelay(1000);
 	#if (_GSM_DUAL_SIM_SUPPORT==1)
-	Gsm_SetDefaultSim(1);
-	Gsm_MsgSetStoredOnSim(false);								//	select message sored to mudule
+	Gsm_SetDefaultSim(1);							
 	#endif
+
+	//Gsm_MsgSetTextModeParameter(17,167,0,0);
+	//Gsm_MsgSetTeCharacterset(GsmMsgTeCharacterSet_GSM);
+
+	//Gsm_MsgRestoreSettings(0);
+
 	Gsm_MsgSetStoredOnSim(false);								//	select message sored to mudule
 	Gsm_MsgGetStatus();													//	read message stored capacity and more
 	Gsm_MsgSetTextMode(true);										//	set to text mode
 	Gsm_SetEnableShowCallerNumber(true);				//  set enable show caller number
 	Gsm_SetConnectedLineIdentification(true);		//	set enable Connected Line Identification
+	Gsm_MsgGetSmsServiceCenter();
+	Gsm_MsgGetTextModeParameter();
+	Gsm_MsgGetTeCharacterset();
+	
+	if(( Gsm.MsgTextModeFo != 17) || (Gsm.MsgTextModeVp != 167) || (Gsm.MsgTextModePid != 0) || (Gsm.MsgTextModeDcs != 0))
+		Gsm_MsgSetTextModeParameter(17,167,0,0);
 	#if (_GSM_DUAL_SIM_SUPPORT==1)
 	Gsm_SetDefaultSim(2);
 	Gsm_MsgSetStoredOnSim(false);					//	select message sored to mudule
+	Gsm_MsgGetSmsServiceCenterDS();
 	Gsm_SetDefaultSim(1);
 	#endif
 	
@@ -221,13 +233,14 @@ void GsmTask(void const * argument)
 	uint8_t GsmResult;
 	Gsm_InitValue();
 	//#######################	
-	
+
+	Gsm_MsgSend("+989111348791","Test");
 
 	while(1)
 	{
 		if(Gsm.MsgStoredUsed>0)	//	sms on memory
 		{
-			for(uint8_t i=1 ; i<=Gsm.MsgStoredCapacity ; i++)
+			for(uint8_t i=1 ; i<=100 ; i++)
 			{
 				if(Gsm_MsgRead(i)==true)
 				{
@@ -359,6 +372,8 @@ bool	Gsm_SetPower(bool ON_or_OFF)
 			Gsm_SendStringAndWait("AT\r\n",1000);
 			Gsm_SendStringAndWait("AT\r\n",1000);						
 			Gsm.PowerState = true;
+			uint8_t result;
+			Gsm_WaitForString(_GSM_WAIT_TIME_VERYHIGH,&result,1,"Call Ready");
 			return true;			
 		}
 		else
@@ -1050,6 +1065,219 @@ bool	Gsm_MsgSend(char *Number,char *message)
 			returnVal=true;	
 		}		
 	}while(0);	
+	osSemaphoreRelease(GsmSemHandle);
+	return returnVal;		
+}
+//########################################################################################################
+bool	Gsm_MsgSetTextModeParameter(uint8_t fo,uint8_t vp,uint8_t pid,uint8_t dcs)
+{
+	osSemaphoreWait(GsmSemHandle,osWaitForever);
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{
+		Gsm_RxClear();
+		sprintf((char*)Gsm.TxBuffer,"AT+CSMP=%d,%d,%d,%d\r\n",fo,vp,pid,dcs);
+		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
+			break;
+		if(Gsm_WaitForString(_GSM_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;		
+		Gsm.MsgTextModeFo = fo;
+		Gsm.MsgTextModeVp = vp;
+		Gsm.MsgTextModePid = pid;
+		Gsm.MsgTextModeDcs = dcs;
+		returnVal=true;		
+	}while(0);
+	osSemaphoreRelease(GsmSemHandle);
+	return returnVal;	
+}
+//########################################################################################################
+bool	Gsm_MsgGetTextModeParameter(void)
+{
+	osSemaphoreWait(GsmSemHandle,osWaitForever);
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{	
+		Gsm_RxClear();
+		sprintf((char*)Gsm.TxBuffer,"AT+CSMP?\r\n");
+		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
+			break;
+		if(Gsm_WaitForString(_GSM_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;			
+		
+		char *str=strchr((char*)Gsm.RxBuffer,':');
+		if(str == NULL)
+			break;
+		str++;
+		sscanf(str,"%d,%d,%d,%d",(int*)&Gsm.MsgTextModeFo,(int*)&Gsm.MsgTextModeVp,(int*)&Gsm.MsgTextModePid,(int*)&Gsm.MsgTextModeDcs);	
+
+		returnVal=true;		
+	}while(0);
+	osSemaphoreRelease(GsmSemHandle);
+	return returnVal;	
+}
+//#########################################################################################################
+bool	Gsm_MsgGetSmsServiceCenter(void)
+{
+	osSemaphoreWait(GsmSemHandle,osWaitForever);
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{	
+		Gsm_RxClear();
+		sprintf((char*)Gsm.TxBuffer,"AT+CSCA?\r\n");
+		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
+			break;
+		if(Gsm_WaitForString(_GSM_WAIT_TIME_MED,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;			
+		Gsm_RemoveChar((char*)Gsm.RxBuffer,'"');
+		Gsm_RemoveChar((char*)Gsm.RxBuffer,' ');
+		Gsm_ReturnString(Gsm.MsgServiceCenter,1,":,");
+		returnVal=true;		
+	}while(0);
+	osSemaphoreRelease(GsmSemHandle);
+	return returnVal;	
+}
+//#########################################################################################################
+#if (_GSM_DUAL_SIM_SUPPORT==1)
+bool	Gsm_MsgGetSmsServiceCenterDS(void)
+{
+	osSemaphoreWait(GsmSemHandle,osWaitForever);
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{	
+		Gsm_RxClear();
+		sprintf((char*)Gsm.TxBuffer,"AT+CSCA?\r\n");
+		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
+			break;
+		if(Gsm_WaitForString(_GSM_WAIT_TIME_MED,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;			
+		Gsm_RemoveChar((char*)Gsm.RxBuffer,'"');
+		Gsm_RemoveChar((char*)Gsm.RxBuffer,' ');
+		Gsm_ReturnString(Gsm.MsgServiceCenterDS,1,":,");
+		returnVal=true;		
+	}while(0);
+	osSemaphoreRelease(GsmSemHandle);
+	return returnVal;	
+}
+#endif
+//#########################################################################################################
+bool	Gsm_MsgSetSmsServiceCenter(char *ServiceCenter)
+{
+	osSemaphoreWait(GsmSemHandle,osWaitForever);
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{	
+		Gsm_RxClear();
+		sprintf((char*)Gsm.TxBuffer,"AT+CSCA=\"%s\"\r\n",ServiceCenter);
+		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
+			break;
+		if(Gsm_WaitForString(_GSM_WAIT_TIME_MED,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;			
+		sprintf(Gsm.MsgServiceCenter,"%s",ServiceCenter);
+		returnVal=true;		
+	}while(0);
+	osSemaphoreRelease(GsmSemHandle);
+	return returnVal;	
+}
+//#########################################################################################################
+bool	Gsm_MsgSetTeCharacterset(char *TeCharacterSet)
+{
+	osSemaphoreWait(GsmSemHandle,osWaitForever);
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{	
+		Gsm_RxClear();
+		sprintf((char*)Gsm.TxBuffer,"AT+CSCS=\"%s\"\r\n",TeCharacterSet);
+		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
+			break;
+		if(Gsm_WaitForString(_GSM_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;			
+		sprintf(Gsm.MsgTeCharacterSet,"%s",TeCharacterSet);
+		returnVal=true;		
+	}while(0);
+	osSemaphoreRelease(GsmSemHandle);
+	return returnVal;		
+}
+//#########################################################################################################
+bool	Gsm_MsgGetTeCharacterset(void)
+{
+	osSemaphoreWait(GsmSemHandle,osWaitForever);
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{	
+		Gsm_RxClear();
+		sprintf((char*)Gsm.TxBuffer,"AT+CSCS?\r\n");
+		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
+			break;
+		if(Gsm_WaitForString(_GSM_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;			
+		Gsm_RemoveChar((char*)Gsm.RxBuffer,'"');
+		Gsm_RemoveChar((char*)Gsm.RxBuffer,' ');
+		Gsm_ReturnString(Gsm.MsgTeCharacterSet,2,":\r\n,");
+		returnVal=true;		
+	}while(0);
+	osSemaphoreRelease(GsmSemHandle);
+	return returnVal;		
+}
+//#########################################################################################################
+bool	Gsm_MsgRestoreSettings(uint8_t selectProfile_0_to_3)
+{
+	osSemaphoreWait(GsmSemHandle,osWaitForever);
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{	
+		Gsm_RxClear();
+		sprintf((char*)Gsm.TxBuffer,"AT+CRES=%d\r\n",selectProfile_0_to_3);
+		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
+			break;
+		if(Gsm_WaitForString(_GSM_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;			
+		returnVal=true;		
+	}while(0);
+	osSemaphoreRelease(GsmSemHandle);
+	return returnVal;		
+}
+//#########################################################################################################
+bool	Gsm_MsgSaveSettings(uint8_t selectProfile_0_to_3)
+{
+	osSemaphoreWait(GsmSemHandle,osWaitForever);
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{	
+		Gsm_RxClear();
+		sprintf((char*)Gsm.TxBuffer,"AT+CSAS=%d\r\n",selectProfile_0_to_3);
+		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
+			break;
+		if(Gsm_WaitForString(_GSM_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;			
+		returnVal=true;		
+	}while(0);
 	osSemaphoreRelease(GsmSemHandle);
 	return returnVal;		
 }

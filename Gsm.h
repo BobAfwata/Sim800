@@ -15,6 +15,20 @@
 #include <string.h>
 #include <stdarg.h>
 //###################################################################################################
+#define				GsmMsgTeCharacterSet_GSM					"GSM"
+#define				GsmMsgTeCharacterSet_UCS2					"UCS2"
+#define				GsmMsgTeCharacterSet_IEC10646			"(ISO/IEC10646"
+#define				GsmMsgTeCharacterSet_IRA					"IRA"
+#define				GsmMsgTeCharacterSet_HEX					"HEX"
+#define				GsmMsgTeCharacterSet_PCCP					"PCCP"
+#define				GsmMsgTeCharacterSet_PCDN					"PCDN"
+#define				GsmMsgTeCharacterSet_8859_1				"8859-1"
+
+
+
+
+
+//----------------------
 typedef	enum
 {
 	GsmDial_Nothing				=		0,
@@ -52,6 +66,7 @@ typedef struct
 	uint8_t									SignalQualityCounter;
 	
 	bool										MsgTextMode;
+	uint8_t									MsgTextModeFo,MsgTextModeVp,MsgTextModePid,MsgTextModeDcs;
 	bool										MsgStoredOnSim;
 	uint16_t								MsgStoredUsed;
 	uint16_t								MsgStoredCapacity;
@@ -59,6 +74,8 @@ typedef struct
 	char										MsgDate[18];
 	char										MsgNumber[15];
 	bool										MsgSendDone;
+	char										MsgServiceCenter[18];
+	char										MsgTeCharacterSet[16];
 	
 	char										CallerNumber[15];
 	GsmDial_t								DialAnswer;
@@ -66,6 +83,7 @@ typedef struct
 	GsmSignalQuality_t			SignalQualityDS;
 	uint8_t									SignalQualityCounterDS;
 	uint8_t									DefaultSim;	
+	char										MsgServiceCenterDS[18];
 	#endif
 
 }Gsm_t;
@@ -112,6 +130,17 @@ bool	Gsm_MsgSetStoredOnSim(bool	OnSimCard);
 bool	Gsm_MsgGetStatus(void);
 bool	Gsm_MsgRead(uint16_t MsgIndex);
 bool	Gsm_MsgSend(char *Number,char *message);
+bool	Gsm_MsgSetTextModeParameter(uint8_t fo,uint8_t vp,uint8_t pid,uint8_t dcs);
+bool	Gsm_MsgGetTextModeParameter(void);
+bool	Gsm_MsgGetSmsServiceCenter(void);
+bool	Gsm_MsgSetSmsServiceCenter(char *ServiceCenter);
+bool	Gsm_MsgSetTeCharacterset(char *GsmMsgTeCharacterSet);
+bool	Gsm_MsgGetTeCharacterset(void);
+bool	Gsm_MsgRestoreSettings(uint8_t selectProfile_0_to_3);
+bool	Gsm_MsgSaveSettings(uint8_t selectProfile_0_to_3);
+#if (_GSM_DUAL_SIM_SUPPORT==1)
+bool	Gsm_MsgGetSmsServiceCenterDS(void);
+#endif
 //###################################################################################################
 bool	Gsm_SetWhiteNumberOff(void);
 bool	Gsm_SetWhiteNumberEmpty(void);
