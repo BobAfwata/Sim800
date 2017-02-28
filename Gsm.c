@@ -234,8 +234,6 @@ void GsmTask(void const * argument)
 	Gsm_InitValue();
 	//#######################	
 
-	Gsm_MsgSend("+989111348791","Test");
-
 	while(1)
 	{
 		if(Gsm.MsgStoredUsed>0)	//	sms on memory
