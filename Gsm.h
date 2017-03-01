@@ -84,6 +84,7 @@ typedef struct
 	uint8_t									SignalQualityCounterDS;
 	uint8_t									DefaultSim;	
 	char										MsgServiceCenterDS[18];
+	uint8_t									MsgTextModeFoDS,MsgTextModeVpDS,MsgTextModePidDS,MsgTextModeDcsDS;
 	#endif
 
 }Gsm_t;

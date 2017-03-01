@@ -18,12 +18,6 @@ void	Gsm_InitValue(void)
 	#if (_GSM_DUAL_SIM_SUPPORT==1)
 	Gsm_SetDefaultSim(1);							
 	#endif
-
-	//Gsm_MsgSetTextModeParameter(17,167,0,0);
-	//Gsm_MsgSetTeCharacterset(GsmMsgTeCharacterSet_GSM);
-
-	//Gsm_MsgRestoreSettings(0);
-
 	Gsm_MsgSetStoredOnSim(false);								//	select message sored to mudule
 	Gsm_MsgGetStatus();													//	read message stored capacity and more
 	Gsm_MsgSetTextMode(true);										//	set to text mode
@@ -39,6 +33,9 @@ void	Gsm_InitValue(void)
 	Gsm_SetDefaultSim(2);
 	Gsm_MsgSetStoredOnSim(false);					//	select message sored to mudule
 	Gsm_MsgGetSmsServiceCenterDS();
+	Gsm_MsgGetTextModeParameter();
+	if(( Gsm.MsgTextModeFoDS != 17) || (Gsm.MsgTextModeVpDS != 167) || (Gsm.MsgTextModePidDS != 0) || (Gsm.MsgTextModeDcsDS != 0))
+		Gsm_MsgSetTextModeParameter(17,167,0,0);
 	Gsm_SetDefaultSim(1);
 	#endif
 	
@@ -1112,8 +1109,14 @@ bool	Gsm_MsgGetTextModeParameter(void)
 		if(str == NULL)
 			break;
 		str++;
+		#if (_GSM_DUAL_SIM_SUPPORT==0)
 		sscanf(str,"%d,%d,%d,%d",(int*)&Gsm.MsgTextModeFo,(int*)&Gsm.MsgTextModeVp,(int*)&Gsm.MsgTextModePid,(int*)&Gsm.MsgTextModeDcs);	
-
+		#else
+			if(Gsm.DefaultSim == 1)
+				sscanf(str,"%d,%d,%d,%d",(int*)&Gsm.MsgTextModeFo,(int*)&Gsm.MsgTextModeVp,(int*)&Gsm.MsgTextModePid,(int*)&Gsm.MsgTextModeDcs);	
+			else
+				sscanf(str,"%d,%d,%d,%d",(int*)&Gsm.MsgTextModeFoDS,(int*)&Gsm.MsgTextModeVpDS,(int*)&Gsm.MsgTextModePidDS,(int*)&Gsm.MsgTextModeDcsDS);	
+		#endif
 		returnVal=true;		
 	}while(0);
 	osSemaphoreRelease(GsmSemHandle);
@@ -1385,25 +1388,5 @@ bool	Gsm_GetWhiteNumber(uint8_t	Index_1_to_30,char *PhoneNumber)
 //#########################################################################################################
 //#########################################################################################################
 //#########################################################################################################
-//#########################################################################################################
-
-
-//#########################################################################################################
-
-//#########################################################################################################
-
-//#########################################################################################################
-
-
-//#########################################################################################################
-//#########################################################################################################
-//#########################################################################################################
-//#########################################################################################################
-
-
-//#########################################################################################################
-
-//#########################################################################################################
-
 //#########################################################################################################
 
