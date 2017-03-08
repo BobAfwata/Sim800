@@ -16,6 +16,11 @@ Please Do This ...
 <br />
 5) Config your GsmConfig.h file.
 <br />
-6) call  Gsm_Init(osPriorityNormal) on your app.
+6) Add Gsm_RxCallBack() on usart interrupt routin. 
+<br />
+7) call  Gsm_Init(osPriorityNormal) on your app.
+<br />
+8) Config your app on GsmUser.c.
+
 
 
