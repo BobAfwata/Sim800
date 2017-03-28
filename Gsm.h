@@ -93,7 +93,7 @@ typedef struct
 //----------------------
 //###################################################################################################
 void	Gsm_UserProcess(void);
-void	Gsm_SmsRecieveProcess(char *Number,char *Message,char *date);
+void	Gsm_SmsReceiveProcess(char *Number,char *Message,char *date);
 void	Gsm_CallProcess(char *Number);
 void	Gsm_RxCallBack(void);
 //###################################################################################################
@@ -112,6 +112,8 @@ bool	Gsm_GetTime(uint8_t *Year,uint8_t *Month,uint8_t *Day,uint8_t *Hour,uint8_t
 #if (_GSM_DUAL_SIM_SUPPORT==1)
 bool	Gsm_SetDefaultSim(uint8_t	SelectedSim_1_or_2);
 #endif
+bool  Gsm_Ussd(char *SendUssd,char *Answer);
+bool  Gsm_UssdCancel(void);
 //###################################################################################################
 bool	Gsm_Answer(void);
 bool	Gsm_WaitForDisconnectCall(uint16_t WaitSecond);

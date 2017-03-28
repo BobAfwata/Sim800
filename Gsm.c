@@ -1,20 +1,17 @@
 #include "Gsm.h"
 #include "GsmConfig.h"
 
-
-
 osThreadId 		GsmTaskHandle;
 osSemaphoreId GsmSemHandle;
 
-
 Gsm_t	Gsm;
-
 
 void	Gsm_InitValue(void)
 {
 	osDelay(1000);
 	Gsm_SetPower(true);													//	turn on module
 	osDelay(1000);
+  Gsm_UssdCancel();
 	#if (_GSM_DUAL_SIM_SUPPORT==1)
 	Gsm_SetDefaultSim(1);							
 	#endif
@@ -37,8 +34,7 @@ void	Gsm_InitValue(void)
 	if(( Gsm.MsgTextModeFoDS != 17) || (Gsm.MsgTextModeVpDS != 167) || (Gsm.MsgTextModePidDS != 0) || (Gsm.MsgTextModeDcsDS != 0))
 		Gsm_MsgSetTextModeParameter(17,167,0,0);
 	Gsm_SetDefaultSim(1);
-	#endif
-	
+	#endif	
 }
 //#########################################################################################################
 bool	Gsm_SendRaw(uint8_t *data,uint16_t len)
@@ -75,17 +71,13 @@ bool	Gsm_WaitForString(uint16_t TimeOut_ms,uint8_t *result,uint8_t CountOfParame
 		return false;
 	if(CountOfParameter == 0)
 		return false;
-
 	*result=0;
-
   va_list tag;
 	va_start (tag,CountOfParameter);
 	char *arg[CountOfParameter];
 	for(uint8_t i=0; i<CountOfParameter ; i++)
 		arg[i] = va_arg (tag, char *);	
-  va_end (tag);
-	
-		
+  va_end (tag);		
 	//////////////////////////////////	
 	for(uint16_t t=0 ; t<TimeOut_ms ; t+=50)
 	{
@@ -100,8 +92,7 @@ bool	Gsm_WaitForString(uint16_t TimeOut_ms,uint8_t *result,uint8_t CountOfParame
 		}				
 	}
 	// timeout
-	return false;
-	
+	return false;	
 }
 //#########################################################################################################
 bool	Gsm_ReturnString(char *result,uint8_t WantWhichOne,char *SplitterChars)
@@ -134,7 +125,6 @@ bool	Gsm_ReturnString(char *result,uint8_t WantWhichOne,char *SplitterChars)
 	strcpy(result,"");
 	return false;	
 }
-
 //#########################################################################################################
 bool	Gsm_ReturnStrings(char *InputString,char *SplitterChars,uint8_t CountOfParameter,...)
 {
@@ -164,8 +154,7 @@ bool	Gsm_ReturnStrings(char *InputString,char *SplitterChars,uint8_t CountOfPara
 			return true;
 		}
   }
-	return false;	
-	
+	return false;		
 }
 //#########################################################################################################
 bool	Gsm_ReturnInteger(int32_t	*result,uint8_t WantWhichOne,char *SplitterChars)
@@ -203,6 +192,7 @@ void Gsm_RemoveChar(char *str, char garbage)
 //#########################################################################################################
 void	Gsm_RxClear(void)
 {
+	HAL_UART_Receive_IT(&_GSM_USART,&Gsm.usartBuff,1);
 	memset(Gsm.RxBuffer,0,_GSM_RX_SIZE);
 	Gsm.RxIndex=0;	
 }
@@ -239,7 +229,7 @@ void GsmTask(void const * argument)
 			{
 				if(Gsm_MsgRead(i)==true)
 				{
-					Gsm_SmsRecieveProcess(Gsm.MsgNumber,Gsm.MsgMessage,Gsm.MsgDate);
+					Gsm_SmsReceiveProcess(Gsm.MsgNumber,Gsm.MsgMessage,Gsm.MsgDate);
 					if(Gsm_MsgDelete(i) == false)
 					{
 						osDelay(100);
@@ -271,7 +261,6 @@ void GsmTask(void const * argument)
 						#endif
 						Gsm_DisconnectVoiceCall();
 					}
-
 				}
 			}					
 		}
@@ -446,8 +435,7 @@ bool	Gsm_SaveConfig(void)
 		returnVal=true;	
 	}while(0);
 	osSemaphoreRelease(GsmSemHandle);
-	return returnVal;
-	
+	return returnVal;	
 }
 //#########################################################################################################
 bool	Gsm_SignalQuality(void)
@@ -612,8 +600,65 @@ bool	Gsm_GetDefaultSim(void)
 	osSemaphoreRelease(GsmSemHandle);
 	return returnVal;		
 }
-
 #endif
+//#########################################################################################################
+bool  Gsm_Ussd(char *SendUssd,char *Answer)
+{
+	osSemaphoreWait(GsmSemHandle,osWaitForever);
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{
+		Gsm_RxClear();
+		sprintf((char*)Gsm.TxBuffer,"AT+CUSD=1,\"%s\"\r\n",SendUssd);
+		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
+			break;
+		if(Gsm_WaitForString(_GSM_WAIT_TIME_VERYHIGH,&result,2,"+CUSD:","ERROR")==false)
+		{
+      sprintf((char*)Gsm.TxBuffer,"AT+CUSD=2\r\n");
+      Gsm_SendString((char*)Gsm.TxBuffer);
+      Gsm_WaitForString(_GSM_WAIT_TIME_MED,&result,2,"OK","ERROR");
+			break;
+    }
+		if(result == 2)
+			break;
+      
+    Gsm_RemoveChar((char*)Gsm.RxBuffer,'"');
+    char *s = strstr((char*)Gsm.RxBuffer,"+CUSD: ");
+    if(s==NULL)
+      break;
+    s+=strlen("+CUSD: ");
+    s+=2;
+    strcpy(Answer,s);
+    returnVal=true;	
+	}while(0);
+  sprintf((char*)Gsm.TxBuffer,"AT+CUSD=2\r\n");
+  Gsm_SendString((char*)Gsm.TxBuffer);
+  Gsm_WaitForString(_GSM_WAIT_TIME_MED,&result,2,"OK","ERROR");
+	osSemaphoreRelease(GsmSemHandle);
+	return returnVal;	  
+}
+//#########################################################################################################
+bool  Gsm_UssdCancel(void)
+{
+  osSemaphoreWait(GsmSemHandle,osWaitForever);
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{
+		Gsm_RxClear();
+		sprintf((char*)Gsm.TxBuffer,"AT+CUSD=2\r\n");
+    Gsm_SendString((char*)Gsm.TxBuffer);
+    if(Gsm_WaitForString(_GSM_WAIT_TIME_MED,&result,2,"OK","ERROR")==false)
+      break;
+    if(result == 2)
+      break;
+    returnVal=true;
+  }while(0);  
+	osSemaphoreRelease(GsmSemHandle);
+	return returnVal;	  
+  
+}
 //#########################################################################################################
 //#########################################################################################################
 //#########################################################################################################
