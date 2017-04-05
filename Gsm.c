@@ -65,7 +65,7 @@ bool	Gsm_SendStringAndWait(char *data,uint16_t DelayMs)
 	return true;
 }
 //#########################################################################################################
-bool	Gsm_WaitForString(uint16_t TimeOut_ms,uint8_t *result,uint8_t CountOfParameter,...)
+bool	Gsm_WaitForString(uint32_t TimeOut_ms,uint8_t *result,uint8_t CountOfParameter,...)
 {
 	
 	if(result == NULL)
@@ -80,7 +80,7 @@ bool	Gsm_WaitForString(uint16_t TimeOut_ms,uint8_t *result,uint8_t CountOfParame
 		arg[i] = va_arg (tag, char *);	
   va_end (tag);		
 	//////////////////////////////////	
-	for(uint16_t t=0 ; t<TimeOut_ms ; t+=50)
+	for(uint32_t t=0 ; t<TimeOut_ms ; t+=50)
 	{
 		osDelay(50);
 		for(uint8_t	mx=0 ; mx<CountOfParameter ; mx++)
