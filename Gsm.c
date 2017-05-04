@@ -275,10 +275,10 @@ void GsmTask(void const * argument)
 		#endif
 		Gsm_UserProcess();
 		osDelay(100);
-		if(HAL_GPIO_ReadPin(GSM_POWER_STATUS_GPIO_Port,GSM_POWER_STATUS_Pin)==GPIO_PIN_RESET)
+		if(HAL_GPIO_ReadPin(_GSM_POWER_STATUS_PORT,_GSM_POWER_STATUS_PIN)==GPIO_PIN_RESET)
 		{
 			osDelay(100);
-			if(HAL_GPIO_ReadPin(GSM_POWER_STATUS_GPIO_Port,GSM_POWER_STATUS_Pin)==GPIO_PIN_RESET)
+			if(HAL_GPIO_ReadPin(_GSM_POWER_STATUS_PORT,_GSM_POWER_STATUS_PIN)==GPIO_PIN_RESET)
 			{
 				Gsm.PowerState=false;
 				Gsm_SetPower(true);

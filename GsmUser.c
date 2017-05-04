@@ -2,7 +2,7 @@
 #include "Gsm.h"
 
 //#######################################################################################
-void	Gsm_SmsRecieveProcess(char *Number,char *Message,char *date)
+void	Gsm_SmsReceiveProcess(char *Number,char *Message,char *date)
 {
 	osDelay(1);	
 }
