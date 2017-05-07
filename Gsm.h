@@ -80,7 +80,6 @@ typedef struct
 	char										CallerNumber[15];
 	GsmDial_t								DialAnswer;
 	#if (_GSM_DUAL_SIM_SUPPORT==1)
- 	bool										MsgTextModeDS;
 	GsmSignalQuality_t			SignalQualityDS;
 	uint8_t									SignalQualityCounterDS;
 	uint8_t									DefaultSim;	
