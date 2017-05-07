@@ -28,6 +28,7 @@ void	Gsm_InitValue(void)
 		Gsm_MsgSetTextModeParameter(17,167,0,0);
 	#if (_GSM_DUAL_SIM_SUPPORT==1)
 	Gsm_SetDefaultSim(2);
+  Gsm_MsgSetTextMode(true);
 	Gsm_MsgSetStoredOnSim(false);					//	select message sored to mudule
 	Gsm_MsgGetSmsServiceCenterDS();
 	Gsm_MsgGetTextModeParameter();
@@ -64,7 +65,7 @@ bool	Gsm_SendStringAndWait(char *data,uint16_t DelayMs)
 	return true;
 }
 //#########################################################################################################
-bool	Gsm_WaitForString(uint16_t TimeOut_ms,uint8_t *result,uint8_t CountOfParameter,...)
+bool	Gsm_WaitForString(uint32_t TimeOut_ms,uint8_t *result,uint8_t CountOfParameter,...)
 {
 	
 	if(result == NULL)
@@ -79,7 +80,7 @@ bool	Gsm_WaitForString(uint16_t TimeOut_ms,uint8_t *result,uint8_t CountOfParame
 		arg[i] = va_arg (tag, char *);	
   va_end (tag);		
 	//////////////////////////////////	
-	for(uint16_t t=0 ; t<TimeOut_ms ; t+=50)
+	for(uint32_t t=0 ; t<TimeOut_ms ; t+=50)
 	{
 		osDelay(50);
 		for(uint8_t	mx=0 ; mx<CountOfParameter ; mx++)
@@ -180,12 +181,16 @@ bool	Gsm_ReturnFloat(float	*result,uint8_t WantWhichOne,char *SplitterChars)
 //#########################################################################################################
 void Gsm_RemoveChar(char *str, char garbage)
 {
+	uint16_t	MaxBuffCounter=_GSM_RX_SIZE;
 	char *src, *dst;
   for (src = dst = str; *src != '\0'; src++)
 	{
 		*dst = *src;
 		if (*dst != garbage)
 			dst++;
+		MaxBuffCounter--;
+		if(MaxBuffCounter==0)
+			break;
   }
   *dst = '\0';
 }
@@ -230,12 +235,13 @@ void GsmTask(void const * argument)
 				if(Gsm_MsgRead(i)==true)
 				{
 					Gsm_SmsReceiveProcess(Gsm.MsgNumber,Gsm.MsgMessage,Gsm.MsgDate);
+					osDelay(100);
 					if(Gsm_MsgDelete(i) == false)
 					{
 						osDelay(100);
 						Gsm_MsgDelete(i);
 					}
-					osDelay(10);
+					osDelay(100);
 				}
 			}			
 		}
@@ -274,10 +280,10 @@ void GsmTask(void const * argument)
 		#endif
 		Gsm_UserProcess();
 		osDelay(100);
-		if(HAL_GPIO_ReadPin(GSM_POWER_STATUS_GPIO_Port,GSM_POWER_STATUS_Pin)==GPIO_PIN_RESET)
+		if(HAL_GPIO_ReadPin(_GSM_POWER_STATUS_PORT,_GSM_POWER_STATUS_PIN)==GPIO_PIN_RESET)
 		{
 			osDelay(100);
-			if(HAL_GPIO_ReadPin(GSM_POWER_STATUS_GPIO_Port,GSM_POWER_STATUS_Pin)==GPIO_PIN_RESET)
+			if(HAL_GPIO_ReadPin(_GSM_POWER_STATUS_PORT,_GSM_POWER_STATUS_PIN)==GPIO_PIN_RESET)
 			{
 				Gsm.PowerState=false;
 				Gsm_SetPower(true);
@@ -354,7 +360,8 @@ bool	Gsm_SetPower(bool ON_or_OFF)
 			osDelay(3000);
 			//	init AtCommands
 			Gsm_SendStringAndWait("AT\r\n",1000);
-			Gsm_SendStringAndWait("AT\r\n",1000);						
+			Gsm_SendStringAndWait("AT\r\n",1000);		
+			Gsm_SendStringAndWait("AT+CFUN=1\r\n",1000);				
 			Gsm.PowerState = true;
 			uint8_t result;
 			Gsm_WaitForString(_GSM_WAIT_TIME_VERYHIGH,&result,1,"Call Ready");
@@ -910,7 +917,14 @@ bool	Gsm_MsgSetTextMode(bool	TextMode)
 		if(result == 2)
 			break;
 		returnVal=true;	
+   	#if (_GSM_DUAL_SIM_SUPPORT==0)
 		Gsm.MsgTextMode=TextMode;
+    #else
+    if(Gsm.DefaultSim==1)
+      Gsm.MsgTextMode=TextMode;
+    else
+      Gsm.MsgTextModeDS=TextMode;
+    #endif
 	}while(0);
 	osSemaphoreRelease(GsmSemHandle);
 	return returnVal;	
@@ -1041,6 +1055,7 @@ bool	Gsm_MsgRead(uint16_t MsgIndex)
 {
 	osSemaphoreWait(GsmSemHandle,osWaitForever);
 	uint8_t result;
+	char *str;
 	bool		returnVal=false;
 	do
 	{
@@ -1052,15 +1067,17 @@ bool	Gsm_MsgRead(uint16_t MsgIndex)
 		sprintf((char*)Gsm.TxBuffer,"AT+CMGR=%d\r\n",MsgIndex);
 		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
 			break;
-		if(Gsm_WaitForString(_GSM_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+		if(Gsm_WaitForString(_GSM_WAIT_TIME_MED,&result,2,"OK","ERROR")==false)
 			break;
 		if(result == 2)
 			break;	
 	
+		osDelay(100);
 		Gsm_RemoveChar((char*)Gsm.RxBuffer,'"');
-		char *str=strchr((char*)Gsm.RxBuffer,',');
+		str=strchr((char*)Gsm.RxBuffer,',');
 		if(str == NULL)
 			break;
+
 		str++;
 		uint16_t msglen;
 		sscanf(str,"%[^,],,%[^+]%d\r\n%[^\r]",Gsm.MsgNumber,Gsm.MsgDate,(int*)&msglen,Gsm.MsgMessage);	
@@ -1078,11 +1095,24 @@ bool	Gsm_MsgSend(char *Number,char *message)
 	Gsm.MsgSendDone=false;
 	do
 	{
+   	#if (_GSM_DUAL_SIM_SUPPORT==0) 
 		if(Gsm.MsgTextMode==false)
 		{
 
 
 		}
+    #else
+    if((Gsm.DefaultSim == 1) && (Gsm.MsgTextMode==false))
+		{
+      
+
+		}
+    if((Gsm.DefaultSim == 2) && (Gsm.MsgTextModeDS==false))
+		{
+      
+
+		}
+    #endif
 		else
 		{
 			Gsm_RxClear();
@@ -1124,10 +1154,27 @@ bool	Gsm_MsgSetTextModeParameter(uint8_t fo,uint8_t vp,uint8_t pid,uint8_t dcs)
 			break;
 		if(result == 2)
 			break;		
+    #if (_GSM_DUAL_SIM_SUPPORT==0)
 		Gsm.MsgTextModeFo = fo;
 		Gsm.MsgTextModeVp = vp;
 		Gsm.MsgTextModePid = pid;
 		Gsm.MsgTextModeDcs = dcs;
+    #else
+    if(Gsm.DefaultSim==1)
+    {
+      Gsm.MsgTextModeFo = fo;
+      Gsm.MsgTextModeVp = vp;
+      Gsm.MsgTextModePid = pid;
+      Gsm.MsgTextModeDcs = dcs;
+    }
+    else
+    {
+      Gsm.MsgTextModeFoDS = fo;
+      Gsm.MsgTextModeVpDS = vp;
+      Gsm.MsgTextModePidDS = pid;
+      Gsm.MsgTextModeDcsDS = dcs;
+    }
+    #endif
 		returnVal=true;		
 	}while(0);
 	osSemaphoreRelease(GsmSemHandle);
