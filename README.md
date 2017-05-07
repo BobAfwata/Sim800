@@ -2,6 +2,8 @@
 <br />
 I hope use it and enjoy.
 <br />
+GsmLib on Example maybe older version.Replace with new version.
+<br />
 I use Stm32f103C8 and Keil Compiler and Stm32CubeMX wizard.
  <br />
 Please Do This ...
