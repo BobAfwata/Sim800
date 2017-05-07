@@ -15,6 +15,8 @@ Please Do This ...
 <br />
 3) 2 control Pin needed. (PowerKey>>>>output,open drain,default to SET) and (Power status>>>>input,pulldown)
 <br />
+PowerKey connect to Simm800 Power Key. PowerStatus connect to Sim800 output vcc 2.8V.
+<br />
 4) Select "General peripheral Initalizion as a pair of '.c/.h' file per peripheral" on project settings.
 <br />
 5) Config your GsmConfig.h file.
