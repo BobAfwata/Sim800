@@ -236,14 +236,9 @@ void GsmTask(void const * argument)
 				{
 					Gsm_SmsReceiveProcess(Gsm.MsgNumber,Gsm.MsgMessage,Gsm.MsgDate);
 					osDelay(100);
-					if(Gsm_MsgDelete(i) == false)
-					{
-						osDelay(100);
-						Gsm_MsgDelete(i);
-					}
-					osDelay(100);
 				}
-			}			
+			}
+			Gsm_MsgDeleteAll();			
 		}
 		Gsm_RxClear();
 		if(Gsm_WaitForString(5000,&GsmResult,2,"\r\nRING\r\n","\r\nRINGDS\r\n")==true)
@@ -962,7 +957,7 @@ bool	Gsm_MsgDeleteAll(void)
 	do
 	{
 		Gsm_RxClear();
-		sprintf((char*)Gsm.TxBuffer,"AT+CMGD=1,4\r\n");
+		sprintf((char*)Gsm.TxBuffer,"AT+CMGDA=\"DEL ALL\"\r\n");
 		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
 			break;
 		if(Gsm_WaitForString(_GSM_WAIT_TIME_HIGH,&result,2,"OK","ERROR")==false)
