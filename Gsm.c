@@ -1,6 +1,7 @@
 #include "Gsm.h"
 #include "GsmConfig.h"
 
+//						2017-05-27-12:46
 osThreadId 		GsmTaskHandle;
 osSemaphoreId GsmSemHandle;
 
@@ -8,7 +9,6 @@ Gsm_t	Gsm;
 
 void	Gsm_InitValue(void)
 {
-	osDelay(1000);
 	Gsm_SetPower(true);													//	turn on module
 	osDelay(1000);
   Gsm_UssdCancel();
@@ -223,6 +223,9 @@ void	Gsm_RxCallBack(void)
 void GsmTask(void const * argument)
 {
 	uint8_t GsmResult;
+	HAL_GPIO_WritePin(_GSM_POWER_PORT,_GSM_POWER_PIN,GPIO_PIN_SET);
+	while(HAL_GetTick() < 2000)
+		osDelay(100);
 	Gsm_InitValue();
 	//#######################	
 
@@ -325,7 +328,7 @@ bool	Gsm_SetPower(bool ON_or_OFF)
 		else
 		{
 			HAL_GPIO_WritePin(_GSM_POWER_PORT,_GSM_POWER_PIN,GPIO_PIN_RESET);
-			osDelay(1200);
+			osDelay(2000);
 			HAL_GPIO_WritePin(_GSM_POWER_PORT,_GSM_POWER_PIN,GPIO_PIN_SET);
 			osDelay(200);
 			if(HAL_GPIO_ReadPin(_GSM_POWER_STATUS_PORT,_GSM_POWER_STATUS_PIN)==GPIO_PIN_RESET)
@@ -345,7 +348,7 @@ bool	Gsm_SetPower(bool ON_or_OFF)
 		if(HAL_GPIO_ReadPin(_GSM_POWER_STATUS_PORT,_GSM_POWER_STATUS_PIN)==GPIO_PIN_RESET)
 		{	
 			HAL_GPIO_WritePin(_GSM_POWER_PORT,_GSM_POWER_PIN,GPIO_PIN_RESET);
-			osDelay(1200);
+			osDelay(2000);
 			HAL_GPIO_WritePin(_GSM_POWER_PORT,_GSM_POWER_PIN,GPIO_PIN_SET);
 			if(HAL_GPIO_ReadPin(_GSM_POWER_STATUS_PORT,_GSM_POWER_STATUS_PIN)==GPIO_PIN_RESET)
 			{
@@ -356,7 +359,8 @@ bool	Gsm_SetPower(bool ON_or_OFF)
 			//	init AtCommands
 			Gsm_SendStringAndWait("AT\r\n",1000);
 			Gsm_SendStringAndWait("AT\r\n",1000);		
-			Gsm_SendStringAndWait("AT+CFUN=1\r\n",1000);				
+			Gsm_SendStringAndWait("AT+CFUN=1\r\n",1000);	
+			Gsm_RxClear();	
 			Gsm.PowerState = true;
 			uint8_t result;
 			Gsm_WaitForString(_GSM_WAIT_TIME_VERYHIGH,&result,1,"Call Ready");
@@ -1425,7 +1429,7 @@ bool	Gsm_SetWhiteNumber(uint8_t	Index_1_to_30,char *PhoneNumber)
 	do
 	{
 		Gsm_RxClear();
-		sprintf((char*)Gsm.TxBuffer,"AT+CWHITELIST=3,%d,%s\r\n",Index_1_to_30,PhoneNumber);
+		sprintf((char*)Gsm.TxBuffer,"AT+CWHITELIST=3,%d,\"%s\"\r\n",Index_1_to_30,PhoneNumber);
 		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
 			break;
 		if(Gsm_WaitForString(_GSM_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
@@ -1457,13 +1461,23 @@ bool	Gsm_GetWhiteNumber(uint8_t	Index_1_to_30,char *PhoneNumber)
 		sprintf((char*)Gsm.TxBuffer,"AT+CWHITELIST?\r\n");
 		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
 			break;
-		if(Gsm_WaitForString(_GSM_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+		if(Gsm_WaitForString(_GSM_WAIT_TIME_MED,&result,2,"OK","ERROR")==false)
 			break;
 		if(result == 2)
 			break;		
 		if(Gsm_ReturnString(PhoneNumber,Index_1_to_30,",")==false)
 			break;
 	
+		char *endstr=PhoneNumber;
+		while(*endstr!=0)
+		{
+			if((*endstr=='\r')||(*endstr=='\n'))
+			{
+				*endstr=0;
+				break;
+			}
+			endstr++;
+		}
 		Gsm_RemoveChar(PhoneNumber,'"');
 		returnVal=true;		
 	}while(0);

@@ -17,7 +17,7 @@
 //###################################################################################################
 #define				GsmMsgTeCharacterSet_GSM					"GSM"
 #define				GsmMsgTeCharacterSet_UCS2					"UCS2"
-#define				GsmMsgTeCharacterSet_IEC10646			"(ISO/IEC10646"
+#define				GsmMsgTeCharacterSet_IEC10646			"ISO/IEC10646"
 #define				GsmMsgTeCharacterSet_IRA					"IRA"
 #define				GsmMsgTeCharacterSet_HEX					"HEX"
 #define				GsmMsgTeCharacterSet_PCCP					"PCCP"
