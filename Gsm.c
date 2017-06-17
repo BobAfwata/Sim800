@@ -1,7 +1,7 @@
 #include "Gsm.h"
 #include "GsmConfig.h"
 
-//						2017-05-27-12:46
+//						2017-06-17-10:32
 osThreadId 		GsmTaskHandle;
 osSemaphoreId GsmSemHandle;
 
@@ -238,10 +238,12 @@ void GsmTask(void const * argument)
 				if(Gsm_MsgRead(i)==true)
 				{
 					Gsm_SmsReceiveProcess(Gsm.MsgNumber,Gsm.MsgMessage,Gsm.MsgDate);
-					osDelay(100);
+					osDelay(3000);
+					Gsm_MsgDelete(i);
+					osDelay(1000);
 				}
 			}
-			Gsm_MsgDeleteAll();			
+			//Gsm_MsgDeleteAll();			
 		}
 		Gsm_RxClear();
 		if(Gsm_WaitForString(5000,&GsmResult,2,"\r\nRING\r\n","\r\nRINGDS\r\n")==true)
@@ -363,7 +365,7 @@ bool	Gsm_SetPower(bool ON_or_OFF)
 			Gsm_RxClear();	
 			Gsm.PowerState = true;
 			uint8_t result;
-			Gsm_WaitForString(_GSM_WAIT_TIME_VERYHIGH,&result,1,"Call Ready");
+			Gsm_WaitForString(_GSM_WAIT_TIME_VERYHIGH,&result,1,"Ready");
 			return true;			
 		}
 		else
@@ -983,7 +985,7 @@ bool	Gsm_MsgDelete(uint8_t MsgIndex)
 	do
 	{
 		Gsm_RxClear();
-		sprintf((char*)Gsm.TxBuffer,"AT+CMGD=%d,0\r\n",MsgIndex);
+		sprintf((char*)Gsm.TxBuffer,"AT+CMGD=%d\r\n",MsgIndex);
 		if(Gsm_SendString((char*)Gsm.TxBuffer)==false)
 			break;
 		if(Gsm_WaitForString(_GSM_WAIT_TIME_HIGH,&result,2,"OK","ERROR")==false)
