@@ -240,8 +240,10 @@ void GsmTask(void const * argument)
 					Gsm_SmsReceiveProcess(Gsm.MsgNumber,Gsm.MsgMessage,Gsm.MsgDate);
 					osDelay(3000);
 					Gsm_MsgDelete(i);
-					osDelay(1000);
 				}
+				osDelay(50);
+				Gsm_MsgDelete(i);
+				osDelay(50);
 			}
 			//Gsm_MsgDeleteAll();			
 		}
