@@ -1,5 +1,7 @@
 # Sim800 series library
 <br />
+Please use Sim800_v2.
+<br />
 I hope use it and enjoy.
 <br />
 GsmLib on Example maybe older version.Replace with new version.
